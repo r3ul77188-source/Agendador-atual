@@ -17,11 +17,10 @@ import com.agendadorTarefas.agendador.repositories.ClientRepository;
 import com.agendadorTarefas.agendador.repositories.TaskRepository;
 import com.agendadorTarefas.agendador.repositories.WorkerRepository;
 import com.agendadorTarefas.agendador.services.validation.AppointmentValidator;
-
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -35,7 +34,8 @@ public class AppointmentService {
     private final ClientRepository clientRepository;
 
     public AppointmentService(AppointmentRepository appointmentRepository, AppointmentValidator appointmentValidator,
-                              AppointmentMapper appointmentMapper, TaskRepository taskRepository, WorkerRepository workerRepository, ClientRepository clientRepository) {
+                              AppointmentMapper appointmentMapper, TaskRepository taskRepository,
+                              WorkerRepository workerRepository, ClientRepository clientRepository) {
         this.appointmentRepository = appointmentRepository;
         this.appointmentValidator = appointmentValidator;
         this.appointmentMapper = appointmentMapper;
@@ -59,23 +59,58 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse create(AppointmentRequest request) {
+        Task task = findTask(request.taskId());
+        Client client = findClient(request.clientId());
+        Worker worker = findWorker(request.workerId());
 
-        Task task = taskRepository.findById(request.taskId()).
-                orElseThrow(() -> new NotFoundTaskException("Task not found"));
-
-        Client client = clientRepository.findById(request.clientId())
-                .orElseThrow(() -> new NotFoundClientException("Client not found"));
-
-        Worker worker = workerRepository.findById(request.workerId())
-                .orElseThrow(() -> new NotFoundWorkerException("Client not found"));
-
-        Appointment appointment = new Appointment(null, request.description(),request.moment(),
-                Status.valueOf(request.status()),task,client,worker);
+        Appointment appointment = new Appointment(null, request.description(), request.moment(),
+                Status.valueOf(request.status()), task, client, worker);
 
         appointmentValidator.validate(appointment);
-
         appointmentRepository.save(appointment);
 
-        return appointmentMapper.toResponse(appointment) ;
+        return appointmentMapper.toResponse(appointment);
+    }
+
+    @Transactional
+    public AppointmentResponse update(Long id, AppointmentRequest request) {
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundAppointmentException("Not Found Appointment id: " + id));
+
+        LocalDateTime previousMoment = appointment.getMoment();
+
+        appointment.setDescription(request.description());
+        appointment.setMoment(request.moment());
+        appointment.setStatus(Status.valueOf(request.status()));
+        appointment.setTask(findTask(request.taskId()));
+        appointment.setClient(findClient(request.clientId()));
+        appointment.setWorker(findWorker(request.workerId()));
+
+        appointmentValidator.validateForUpdate(appointment, previousMoment);
+        appointmentRepository.save(appointment);
+
+        return appointmentMapper.toResponse(appointment);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundAppointmentException("Not Found Appointment id: " + id));
+        appointmentRepository.delete(appointment);
+    }
+
+    private Task findTask(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new NotFoundTaskException("Task not found"));
+    }
+
+    private Client findClient(Long id) {
+        return clientRepository.findById(id)
+                .orElseThrow(() -> new NotFoundClientException("Client not found"));
+    }
+
+    private Worker findWorker(Long id) {
+        return workerRepository.findById(id)
+                .orElseThrow(() -> new NotFoundWorkerException("Worker not found"));
     }
 }

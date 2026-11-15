@@ -12,22 +12,34 @@ import java.time.LocalDateTime;
 @Component
 public class DefaultAppointmentValidator implements AppointmentValidator {
 
-    private AppointmentRepository appointmentRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    public DefaultAppointmentValidator(AppointmentRepository appointmentRepository){
+    public DefaultAppointmentValidator(AppointmentRepository appointmentRepository) {
         this.appointmentRepository = appointmentRepository;
     }
 
     @Override
     public void validate(Appointment appointment) {
         validateComponents(appointment);
-        validateDate(appointment.getMoment(),appointment.getStatus());
-        checkWorkerAppointment(appointment.getWorker().getId(),appointment.getMoment());
+        validateDate(appointment.getMoment(), appointment.getStatus());
+        checkWorkerAppointment(appointment.getWorker().getId(), appointment.getMoment());
     }
 
+    @Override
+    public void validateForUpdate(Appointment appointment, LocalDateTime previousMoment) {
+        validateComponents(appointment);
+        // Só exige data futura quando o horário realmente mudou.
+        if (!appointment.getMoment().equals(previousMoment)) {
+            validateDate(appointment.getMoment(), appointment.getStatus());
+        }
+        if (appointmentRepository.existsByWorkerIdAndMomentAndIdNot(
+                appointment.getWorker().getId(), appointment.getMoment(), appointment.getId())) {
+            throw new DuplicateDateException("Appointment already exists for this worker at this time.");
+        }
+    }
 
-    private void validateComponents(Appointment appointment){
-        if (appointment.getClient() == null || appointment.getClient().getId() == null){
+    private void validateComponents(Appointment appointment) {
+        if (appointment.getClient() == null || appointment.getClient().getId() == null) {
             throw new IllegalArgumentException("Client is required");
         } else if (appointment.getWorker() == null || appointment.getWorker().getId() == null) {
             throw new IllegalArgumentException("Worker is required");
@@ -36,13 +48,11 @@ public class DefaultAppointmentValidator implements AppointmentValidator {
         }
     }
 
-
     private void validateDate(LocalDateTime moment, Status status) {
         if (moment == null) {
-            throw new InvalidDateException("Date cannot null");
-        }
-        else if (moment.isBefore(LocalDateTime.now())) {
-            throw new InvalidDateException("Date invalid");
+            throw new InvalidDateException("Date cannot be null");
+        } else if (moment.isBefore(LocalDateTime.now())) {
+            throw new InvalidDateException("Date must be in the future");
         }
     }
 
@@ -51,5 +61,4 @@ public class DefaultAppointmentValidator implements AppointmentValidator {
             throw new DuplicateDateException("Appointment already exists for this worker at this time.");
         }
     }
-
 }

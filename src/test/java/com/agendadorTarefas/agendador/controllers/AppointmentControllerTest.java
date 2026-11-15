@@ -31,7 +31,7 @@ class AppointmentControllerTest {
             {
                 "description": "Consulta de rotina",
                 "moment": "15:30 19/11/2026",
-                "status": "PENDING",
+                "status": 1,
                 "taskId": 1,
                 "clientId": 1,
                 "workerId": 1
@@ -53,7 +53,7 @@ class AppointmentControllerTest {
             {
                 "description": "",
                 "moment": null,
-                "status": "PENDING",
+                "status": 1,
                 "taskId": null,
                 "clientId": null,
                 "workerId": null

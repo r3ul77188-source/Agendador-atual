@@ -14,6 +14,7 @@ public record AppointmentRequest(
         @JsonFormat(pattern = "HH:mm dd/MM/yyyy")
         LocalDateTime moment,
 
+        @NotNull(message = "Status is required")
         @Min(value = 1, message = "Status must be between 1 and 3")
         @Max(value = 3, message = "Status must be between 1 and 3")
         Integer status,

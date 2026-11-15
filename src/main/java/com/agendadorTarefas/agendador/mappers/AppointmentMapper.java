@@ -30,7 +30,7 @@ public class AppointmentMapper {
         TaskSummary taskSummary = new TaskSummary(appointment.getTask().getId(), appointment.getTask().getDescription());
 
         ClientSummary clientSummary = new ClientSummary(appointment.getClient().getId(), appointment.getClient().getName()
-                , appointment.getClient().getSurname(), appointment.getClient().getAddress(), appointment.getClient().getCellPhone());
+                , appointment.getClient().getSurname(), appointment.getClient().getCellPhone(), appointment.getClient().getAddress());
 
         WorkerSummary workerSummary = new WorkerSummary(appointment.getWorker().getId()
                 , appointment.getWorker().getName(), appointment.getWorker().getSurname());
